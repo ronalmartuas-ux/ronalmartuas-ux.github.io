@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Laporan Keuangan </title>
+    <link rel="stylesheet" href="style.css" />
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body{
+      background:#f4f6f9;
+      padding:30px;
+    }
+
+    .container{
+      max-width:900px;
+      margin:auto;
+      background:white;
+      padding:25px;
+      border-radius:10px;
+      box-shadow:0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+      color:#333;
+    }
+
+    .summary{
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:20px;
+      gap:10px;
+    }
+
+    .card{
+      flex:1;
+      padding:20px;
+      border-radius:10px;
+      color:white;
+      text-align:center;
+    }
+
+    .income{
+      background:#28a745;
+    }
+
+    .expense{
+      background:#dc3545;
+    }
+
+    .balance{
+      background:#6f00ff;
+    }
+
+    form{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    input, select, button{
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:5px;
+    }
+
+    button{
+      background:#007bff;
+      color:rgba(255, 255, 255, 0.992);
+      border:none;
+      cursor:pointer;
+    }
+
+    button:hover{
+      background:#0056b3;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+    }
+
+    table th, table td{
+      padding:12px;
+      border-bottom:1px solid #ddd;
+      text-align:center;
+    }
+
+    .delete-btn{
+      background:red;
+      padding:5px 10px;
+      border:none;
+      color:white;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    @media(max-width:768px){
+      form{
+        grid-template-columns:1fr;
+      }
+
+      .summary{
+        flex-direction:column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>LAPORAN KEUANGAN HARIAN</h1>
+
+  <div class="summary">
+    <div class="card income">
+      <h3>Pemasukan</h3>
+      <p id="totalIncome">Rp 0</p>
+    </div>
+
+    <div class="card expense">
+      <h3>Pengeluaran</h3>
+      <p id="totalExpense">Rp 0</p>
+    </div>
+
+    <div class="card balance">
+      <h3>Saldo</h3>
+      <p id="balance">Rp 0</p>
+    </div>
+  </div>
+
+  <form id="financeForm">
+    <input type="text" id="description" placeholder="Keterangan" required>
+
+    <input type="number" id="amount" placeholder="Jumlah" required>
+
+    <select id="type">
+      <option value="income">Pemasukan</option>
+      <option value="expense">Pengeluaran</option>
+    </select>
+
+    <input type="date" id="date" required>
+
+    <button type="submit">Tambah</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Keterangan</th>
+        <th>Tipe</th>
+        <th>Jumlah</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+
+    <tbody id="transactionList">
+
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+
+  const financeForm = document.getElementById('financeForm');
+  const transactionList = document.getElementById('transactionList');
+
+  const totalIncome = document.getElementById('totalIncome');
+  const totalExpense = document.getElementById('totalExpense');
+  const balance = document.getElementById('balance');
+
+  let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+  function saveData(){
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+  }
+
+  function formatRupiah(number){
+    return 'Rp ' + number.toLocaleString('id-ID');
+  }
+
+  function renderTransactions(){
+
+    transactionList.innerHTML = '';
+
+    let income = 0;
+    let expense = 0;
+
+    transactions.forEach((transaction, index)=>{
+
+      if(transaction.type === 'income'){
+        income += transaction.amount;
+      } else {
+        expense += transaction.amount;
+      }
+
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td>${transaction.date}</td>
+        <td>${transaction.description}</td>
+        <td>${transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}</td>
+        <td>${formatRupiah(transaction.amount)}</td>
+        <td>
+          <button class="delete-btn" onclick="deleteTransaction(${index})">
+            Hapus
+          </button>
+        </td>
+      `;
+
+      transactionList.appendChild(row);
+
+    });
+
+    totalIncome.textContent = formatRupiah(income);
+    totalExpense.textContent = formatRupiah(expense);
+    balance.textContent = formatRupiah(income - expense);
+
+  }
+
+  financeForm.addEventListener('submit', function(e){
+
+    e.preventDefault();
+
+    const description = document.getElementById('description').value;
+    const amount = parseInt(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const date = document.getElementById('date').value;
+
+    transactions.push({
+      description,
+      amount,
+      type,
+      date
+    });
+
+    saveData();
+    renderTransactions();
+
+    financeForm.reset();
+
+  });
+
+  function deleteTransaction(index){
+
+    if(confirm('Apakah anda yakin ingin menghapus data?')){
+
+      transactions.splice(index,1);
+
+      saveData();
+      renderTransactions();
+
+    }
+
+  }
+
+  renderTransactions();
+
+</script>
+
+</body>
+</html>
